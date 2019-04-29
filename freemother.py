@@ -9,8 +9,9 @@ import time
 import subprocess
 
 PORT=80
-HOST='192.168.0.1'
-mac='MO0004A3F90000' ###change here
+HOST='10.29.4.156'
+mac='MO0004A3FFB99D'
+xmac='MO0004A3F90000' ###change here
 cookieName=['one','two','three','four']
 cookieNode=['6FEC200D','AA81082C','206B121A','65EB0E1C'] ##change here
 
@@ -48,12 +49,18 @@ def debugLog( txt ):
     subprocess.call( 'echo "'+n+txt+'" >> '+logFile, shell=True )  
     return
 
+def addToLog( txt ):
+    print(txt)
+    f = open("mother-log.txt", "a+")
+    f.write(txt)
+    f.write("\n")
+
 # Called for every client connecting (after handshake)
 def new_client(client, server):
     global cl_mother
     global cl0
     h=client['address'][0]
-    print("New client connected and was given id %d %s" % (client['id'], h))
+    addToLog("New client connected and was given id %d %s" % (client['id'], h))
     
     if client['id']==1:
       cl_mother=client
@@ -65,81 +72,86 @@ def new_client(client, server):
 # Called for every client disconnecting
 def client_left(client, server):
     global cl0
-    print("Client(%d) disconnected" % client['id'])
+    addToLog("Client(%d) disconnected" % client['id'])
     if client['id']==2:
       cl0=''
 
 
 # Called when a client sends a message
 def message_received(client, server, message):
+    addToLog(message);
     global sleep_state
     global cl_mother
     global cl0
-    debugLog(chr(48+client['id'])+" "+message)
+    try:
+        debugLog(chr(48+client['id'])+" "+message)
+    except:
+        addToLog("Error handling on message: " + str(client['id']) + " " + message)
+
     #debugLog(message)
     if len(message) > 200:
       message = message[:200]+'..'
-    print("Client(%d) said: %s" % (client['id'], message))
+    addToLog("Client(%d) said: %s" % (client['id'], message))
     if client['id']==2:
-      print("invio a Client(%d) " % (cl_mother['id']))
-      print "test ",message
+      addToLog("invio a Client(%d) " % (cl_mother['id']))
+      addToLog("test " + message)
       server.send_message(cl_mother, message)
   
     #controlli
     if client['id']==1:
      j = json.loads(message)
      if j['resource']=='auth':
-      print("Client(%d) " % (client['id']))
-      print "auth request"
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("auth request")
       fase=1
       server.send_message(client, msg_1)
-      print "SRV:",msg_1
+      addToLog("SRV:" + msg_1)
 
      if j['resource']=='login':
-      print("Client(%d) " % (client['id']))
-      print "auth request 2"
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("auth request 2")
       fase=2
       server.send_message(client, msg_2)
-      print "SRV:",msg_2
+      addToLog("SRV:" + msg_2)
       
      if j['resource']=='registration':
-      print("Client(%d) " % (client['id']))
-      print "auth request 3"
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("auth request 3")
       fase=3
       server.send_message(client, msg_3)
-      print "SRV:",msg_3
+      addToLog("SRV:" + msg_3)
       server.send_message(client, msg_3a)
-      print "SRV:",msg_3a
+      addToLog("SRV:" + msg_3a)
       
      if j['resource']=='planning':
-      print("Client(%d) " % (client['id']))
-      print "auth request 4"
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("auth request 4")
       fase=4
       server.send_message(client, msg_4)
-      print "SRV:",msg_4
+      addToLog("SRV:" + msg_4)
       
      if j['resource']=='library/sound':
-      print("Client(%d) " % (client['id']))
-      print "auth request 6"
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("auth request 6")
       fase=5
       server.send_message(client, msg_6)
-      print "SRV:",msg_6          
+      addToLog("SRV:" + msg_6)     
 
      if j['resource']=='library/resident':
-      print("Client(%d) " % (client['id']))
-      print "auth request 5"
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("auth request 5")
       fase=6
       server.send_message(client, msg_5)
-      print "SRV:",msg_5          
+      addToLog("SRV:" + msg_5)
 
      if j['resource']=='events':
-      print("Client(%d) " % (client['id']))
-      print "events "
+      addToLog("Client(%d) " % (client['id']))
+      addToLog("events ")
       node=''
       try:
         node=j['body'][0]['node']
       except KeyError:
-        print "no node"
+        addToLog("no node")
       ## cerca il nodo tra i biscotti
       co=''
       idx=0
@@ -149,7 +161,7 @@ def message_received(client, server, message):
           break
         idx+=1
       if co!='':
-        print "cookie ", co, 
+        addToLog("cookie " + co)
         ft=j['body'][0]['feed_type']
         si=j['body'][0]['signal']
         va=j['body'][0]['value']
@@ -158,28 +170,28 @@ def message_received(client, server, message):
         t = "( " + time.strftime("%c") + " ) "
         #tmp="_"+t+"_feed_=" + ft + "_signal_=" +si+ "_value_="+va
         tmp=t+";"+ft+";"+si+";"+va;
-        print tmp
+        addToLog("tmp = " + tmp)
         #send to browser
         if cl0!='':
           server.send_message(cl0, "COOKIE"+chr(49+idx)+tmp)
         else:
-          print "not dbg redirection"
+          addToLog("not dbg redirection")
                 
       if j['body'][0]['feed_type']=='6':
-        print "feed 6 "
+        addToLog("feed 6 ")
         if j['body'][0]['value']>='5000' and sleep_state<2:
-           print "sleep fase 1"
+           addToLog("sleep fase 1")
            sleep_state+=1
            if sleep_state==2:
-              print "sleep fase 2"
+              addToLog("sleep fase 2")
               server.send_message(client, msgsleep)
         else:
            if sleep_state>1:
-              print "wake up "
+              addToLog("wake up ")
               sleep_state=0
               server.send_message(client, msgwakeup)
       if j['body'][0]['feed_type']=='1' and j['body'][0]['value']=='1':
-        print "ping!? "
+        addToLog("ping!? ")
         server.send_message(client, msgup)
           
       
